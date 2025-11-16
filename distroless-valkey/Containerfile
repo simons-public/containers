@@ -44,7 +44,7 @@ RUN rm -fr \
     /base/usr/lib/pkgconfig \
     /base/usr/lib/cmake
 
-FROM localhost/distroless
+FROM distroless
 
 ARG VALKEY_VERSION=9.0.0
 
