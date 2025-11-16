@@ -2,10 +2,10 @@ version: '3'
 
 vars:
   DESTINATION: ghcr.io/simons-public
-  CONTAINERS: 
+  CONTAINERS:
     sh: >
-        find . -name Containerfile 
-        -printf '%h ' 2>/dev/null | 
+        find . -name Containerfile
+        -printf '%h ' 2>/dev/null |
         sed -e 's/\.\///g' | tr '\n' ' '
 
 tasks:
@@ -14,7 +14,7 @@ tasks:
     silent: true
     aliases: ["default"]
     cmds:
-    - printf 'Containers꞉ ' 
+    - printf 'Containers꞉ '
     - printf '%s\t' "{{ .CONTAINERS }}"
     - printf '\n\n'
     - task --list
@@ -43,7 +43,7 @@ tasks:
       TAG: '{{ index .MATCH 1 }}'
     cmds:
     - >
-      echo podman tag {{.NAME}}:{{.TAG}} 
+      echo podman tag {{.NAME}}:{{.TAG}}
       {{.DESTINATION}}/{{.NAME}}:{{.TAG}}
     - echo podman push {{.DESTINATION}}/{{.NAME}}:{{.TAG}}
 
