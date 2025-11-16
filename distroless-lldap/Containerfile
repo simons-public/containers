@@ -1,0 +1,30 @@
+FROM archlinux AS builder
+
+ARG ARCH=amd64
+ARG LLDAP_VERSION=0.6.2
+ARG LLDAP_TARBALL=amd64-lldap.tar.gz
+ARG GITHUB_URL=https://github.com/lldap/lldap/releases/download
+
+RUN pacman -Sy --noconfirm busybox
+WORKDIR /tmp/lldap
+RUN curl --location --output lldap.tar.gz \
+  "${GITHUB_URL}/v${LLDAP_VERSION}/${LLDAP_TARBALL}" \
+  && tar xzf lldap.tar.gz --strip-components=1
+
+FROM distroless
+ARG LLDAP_VERSION=0.6.2
+
+COPY --from=builder /tmp/lldap/app /var/lib/lldap/app
+COPY --from=builder /tmp/lldap/lldap /usr/bin/
+COPY --from=builder /tmp/lldap/lldap_migration_tool /usr/bin/
+COPY --from=builder /tmp/lldap/lldap_set_password /usr/bin/
+
+WORKDIR /var/lib/lldap
+
+ENTRYPOINT ["lldap", "run", "--config-file", "/etc/lldap/config.toml"]
+
+LABEL org.opencontainers.image.title="distroless lldap"
+LABEL org.opencontainers.image.description="distroless lldap"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.volumes.config="/etc/lldap"
+LABEL build.lldap.version="${LLDAP_VERSION}"
