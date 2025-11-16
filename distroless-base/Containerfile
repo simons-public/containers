@@ -1,0 +1,78 @@
+FROM archlinux:base AS builder
+
+ARG TZ_VERSION=2025b
+ARG TZ_RELEASES=https://data.iana.org/time-zones/releases/
+ARG CA_SCRIPT=https://github.com/curl/curl/raw/refs/heads/master/scripts/mk-ca-bundle.pl
+ARG GLIBC_VERSION=2.42
+ARG GLIBC_SOURCE=https://ftp.gnu.org/gnu/glibc/glibc-${GLIBC_VERSION}.tar.xz
+
+RUN pacman -Sy --noconfirm base-devel linux-api-headers python lzip
+
+RUN mkdir -p \
+ /base/{dev,etc,proc,run,sys,tmp,usr} \
+ /base/usr/{bin,include,lib} \
+ /base/usr/share/zoneinfo \
+ /base/var/{cache,lib,lock,log,run,spool,tmp} \
+ /base/etc/ssl/certs \
+ && ln -s usr/bin /base/bin \
+ && ln -s usr/bin /base/sbin \
+ && ln -s usr/lib /base/lib \
+ && ln -s usr/lib /base/lib64 \
+ && ln -s lib /base/usr/lib64 \
+ && ln -s bin /base/usr/sbin
+
+RUN mkdir -p /build/timezone \
+  && cd /build/timezone \
+  && curl --location --output tzdb.tar.lz \
+    ${TZ_RELEASES}/tzdb-${TZ_VERSION}.tar.lz \
+  && tar xf tzdb.tar.lz --strip-components=1 \
+  && make zones DESTDIR=/base \
+  && ln -sf /usr/share/zoneinfo/UTC /base/etc/localtime
+
+RUN mkdir -p /build/ca \
+  && cd /build/ca \
+  && curl --location --output mk-ca-bundle.pl ${CA_SCRIPT} \
+  && perl mk-ca-bundle.pl /base/etc/ssl/certs/ca-certificates.crt
+
+RUN mkdir -p /build/glibc \
+  && cd /build/glibc \
+  && curl --location --output glibc.tar.xz ${GLIBC_SOURCE} \
+  && tar xf glibc.tar.xz --strip-components=1 \
+  && mkdir build && cd build \
+  && ../configure --prefix=/usr --libdir=/usr/lib --sysconfdir=/etc \
+    --enable-kernel=4.4 --with-bugurl=none --disable-static \
+    --disable-selinux --disable-nscd --disable-obsolete-rpc \
+    --disable-werror \
+  && make -j$(nproc) \
+  && make install DESTDIR=/base
+
+COPY ./etc/ /base/etc/
+
+# Cleanup base dir
+RUN find /base/usr -name '*.h' -o -name '*.a' -o -name '*.o' -delete \
+  && rm -f /base/usr/bin/* \
+  && rm -fr /base/usr/include \
+  && rm -fr /base/usr/lib/audit \
+  && rm -fr /base/usr/share/{info,i18n} \
+  && rm -fr /base/usr/libexec/getconf \
+  && rm -fr /base/var/cache/ldconfig \
+  && rm -fr /base/var/db \
+  && rm -f /base/etc/rpc /base/etc/ld.so.cache \
+    /base/usr/lib/libc_malloc_debug.s* \
+    /base/usr/lib/libnss_compat.s* /base/usr/lib/libnss_hesiod.s* \
+    /base/usr/lib/libnss_db.s*
+
+FROM scratch
+
+ARG TZ_VERSION=2025b
+ARG GLIBC_VERSION=2.42
+
+COPY --from=builder --link /base /
+
+LABEL org.opencontainers.image.title="distroless"
+LABEL org.opencontainers.image.description="distroless base image with glibc, tzdb, and mozilla ca certs"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL build.glibc.version="${GLIBC_VERSION}"
+LABEL build.tzdb.version="${TZ_VERSION}"
+LABEL build.linkage="dynamic"
+LABEL build.libs="glibc"
