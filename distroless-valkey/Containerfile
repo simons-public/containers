@@ -46,18 +46,22 @@ RUN rm -fr \
 
 FROM localhost/distroless
 
+ARG VALKEY_VERSION=9.0.0
+
 COPY --from=builder /base/usr/lib/ /usr/lib/
 COPY --from=builder /base/usr/share/ /usr/share/
 COPY --from=builder /base/usr/bin/ /usr/bin/
-
-COPY --from=builder /usr/bin/busybox /usr/bin/busybox
 
 COPY ./passwd /etc/passwd
 COPY ./shadow /etc/shadow
 
 USER valkey
 WORKDIR /var/lib/valkey
-VOLUME ["/etc/valkey"]
 
 ENTRYPOINT ["valkey-server", "/etc/valkey/server.conf"]
 
+LABEL org.opencontainers.image.title="distroless valkey"
+LABEL org.opencontainers.image.description="distroless valkey"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.volumes.config="/etc/valkey"
+LABEL build.valkey.version="${VALKEY_VERSION}"
