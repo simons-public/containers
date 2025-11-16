@@ -1,0 +1,33 @@
+FROM archlinux AS builder
+
+ARG DOTNET_VERSION=8.0.22
+ARG DOTNET_TARFILE=https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/${DOTNET_VERSION}/aspnetcore-runtime-${DOTNET_VERSION}-linux-x64.tar.gz
+
+RUN pacman -Sy --noconfirm busybox libunwind
+
+WORKDIR /tmp/dotnet
+RUN curl --location --output dotnet.tar.gz \
+  ${DOTNET_TARFILE} \
+  && tar xf dotnet.tar.gz \
+  && mkdir -p /base/usr/share/dotnet \
+  && mv dotnet host shared /base/usr/share/dotnet/
+
+WORKDIR /base/usr/lib
+RUN for lib in crypto gcc_s ssl stdc++ z \
+  icudata icui18n icuio icutest icutu icuuc \
+  unwind unwind-x86_64 lzma ;\
+  do \
+    cp -av /usr/lib/lib${lib}.so* /base/usr/lib/; \
+  done
+
+FROM distroless
+ARG DOTNET_VERSION=8.0.22
+
+COPY --from=builder /base/usr/share/dotnet/ /usr/share/dotnet/
+COPY --from=builder /base/usr/lib/ /usr/lib/
+
+LABEL org.opencontainers.image.title="distroless dotnet"
+LABEL org.opencontainers.image.description="distroless dotnet"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.volumes.config="/etc/dotnet"
+LABEL build.dotnet.version="${DOTNET_VERSION}"
