@@ -1,0 +1,55 @@
+FROM archlinux AS builder
+
+ARG VAULTWARDEN_VERSION=1.34.3
+ARG GITHUB_URL=https://github.com/dani-garcia/vaultwarden/archive/refs/tags
+ARG BW_WEB_VERSION=2025.7.0
+ARG BW_GITHUB_URL=https://github.com/dani-garcia/bw_web_builds/releases/download
+ARG BW_RELEASE=${BW_GITHUB_URL}/v${BW_WEB_VERSION}/bw_web_v${BW_WEB_VERSION}.tar.gz
+
+RUN pacman -Sy --noconfirm base-devel pkgconf \
+  cargo openssl postgresql
+
+WORKDIR /tmp
+RUN curl --location --output vaultwarden.tar.gz \
+  "${GITHUB_URL}/${VAULTWARDEN_VERSION}.tar.gz" \
+  && tar xf vaultwarden.tar.gz --strip-components=1 \
+  && cargo build --release --locked --no-default-features \
+    --features postgresql
+
+WORKDIR /base/usr/share/vaultwarden/web_vault
+RUN curl --location --output bw_web.tar.gz ${BW_RELEASE} \
+  && tar xf bw_web.tar.gz --strip-components=1
+  
+WORKDIR /base/usr/lib
+RUN for lib in ssl crypto pq gcc_s \
+  gssapi_krb5 ldap krb5 k5crypto com_err \
+  krb5support keyutils resolv lber sasl2; \
+  do \
+    cp -av /usr/lib/lib${lib}.so* /base/usr/lib/; \
+  done
+WORKDIR /base/usr/bin
+RUN cp /tmp/target/release/vaultwarden ./
+
+FROM distroless
+ARG VAULTWARDEN_VERSION=1.34.3
+ARG BW_WEB_VERSION=2025.7.0
+
+COPY --from=builder /base/usr/lib/ /usr/lib/
+COPY --from=builder /base/usr/bin/ /usr/bin/
+COPY --from=builder /base/usr/share/ /usr/share/
+
+WORKDIR /var/lib/vaultwarden
+ENV ROCKET_ADDRESS=0.0.0.0
+ENV WEB_VAULT_FOLDER=/usr/share/vaultwarden/web_vault
+ENV DATA_FOLDER=/var/lib/vaultwarden/data
+ENV ATTACHMENTS_FOLDER=/var/lib/vaultwarden/attachments
+ENV ICON_CACHE_FOLDER=/var/lib/vaultwarden/icon_cache
+
+ENTRYPOINT ["/usr/bin/vaultwarden"]
+
+LABEL org.opencontainers.image.title="distroless vaultwarden"
+LABEL org.opencontainers.image.description="distroless vaultwarden"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.volumes.config="/var/lib/vaultwarden"
+LABEL build.vaultwarden.version="${VAULTWARDEN_VERSION}"
+LABEL build.bw_web.version="${BW_WEB_VERSION}"

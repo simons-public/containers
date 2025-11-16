@@ -1,0 +1,28 @@
+FROM archlinux AS builder
+
+ARG ARCH=x86_64
+ARG DONETICK_VERSION=0.1.64
+ARG DONETICK_TARBALL=donetick_Linux_${ARCH}.tar.gz
+ARG GITHUB_URL=https://github.com/donetick/donetick/releases/download
+
+WORKDIR /tmp
+RUN curl --location --output donetick.tar.gz \
+  "${GITHUB_URL}/v${DONETICK_VERSION}/${DONETICK_TARBALL}" \
+  && tar xzf donetick.tar.gz
+
+FROM distroless
+
+ARG DONETICK_VERSION=0.1.64
+
+COPY --from=builder /tmp/donetick /usr/bin/donetick
+
+ENV DT_ENV=selfhosted
+WORKDIR /var/lib/donetick
+
+ENTRYPOINT ["/usr/bin/donetick"]
+
+LABEL org.opencontainers.image.title="distroless donetick"
+LABEL org.opencontainers.image.description="distroless donetick"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.volumes.config="/var/lib/donetick"
+LABEL build.donetick.version="${DONETICK_VERSION}"
