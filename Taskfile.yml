@@ -1,0 +1,63 @@
+version: '3'
+
+vars:
+  DESTINATION: ghcr.io/simons-public
+  CONTAINERS: 
+    sh: >
+        find . -name Containerfile 
+        -printf '%h ' 2>/dev/null | 
+        sed -e 's/\.\///g' | tr '\n' ' '
+
+tasks:
+  help:
+    desc: Help
+    silent: true
+    aliases: ["default"]
+    cmds:
+    - printf 'Containers꞉ ' 
+    - printf '%s\t' "{{ .CONTAINERS }}"
+    - printf '\n\n'
+    - task --list
+
+  build:*:*:
+    desc: Build image by its name and tag (build:distroless/dotnet:0.1.0)
+    vars:
+      NAME: '{{ index .MATCH 0 }}'
+      TAG: '{{ index .MATCH 1 }}'
+    cmds:
+    - >
+      podman build --build-arg VERSION={{.TAG}}
+      -t {{.NAME}}:{{.TAG}} {{.NAME}}/
+
+  build:*:
+    desc: Build image by its name as latest (build:distroless/dotnet)
+    vars:
+      NAME: '{{ index .MATCH 0 }}'
+    cmds:
+    - task build:{{.NAME}}:latest
+
+  push:*:*:
+    desc: Push an image by its name and tag to $DESTINATION ({{.DESTINATION}})
+    vars:
+      NAME: '{{ index .MATCH 0 }}'
+      TAG: '{{ index .MATCH 1 }}'
+    cmds:
+    - >
+      echo podman tag {{.NAME}}:{{.TAG}} 
+      {{.DESTINATION}}/{{.NAME}}:{{.TAG}}
+    - echo podman push {{.DESTINATION}}/{{.NAME}}:{{.TAG}}
+
+  push:*:
+    desc: Push an image by its name to $DESTINATION as :latest
+    vars:
+      NAME: '{{ index .MATCH 0 }}'
+    cmds:
+    - task push:{{.NAME}}:latest
+
+  lint:
+    desc: Lint all Containerfiles
+    cmds:
+    - >
+      find . -name 'Containerfile' -print0 |
+      xargs -0 -I{} sh -c
+      'echo "Linting {}"; cat "{}" | podman run --rm -i hadolint/hadolint'
