@@ -43,9 +43,9 @@ tasks:
       TAG: '{{ index .MATCH 1 }}'
     cmds:
     - >
-      echo podman tag {{.NAME}}:{{.TAG}}
+      podman tag {{.NAME}}:{{.TAG}}
       {{.DESTINATION}}/{{.NAME}}:{{.TAG}}
-    - echo podman push {{.DESTINATION}}/{{.NAME}}:{{.TAG}}
+    - podman push {{.DESTINATION}}/{{.NAME}}:{{.TAG}}
 
   push:*:
     desc: Push an image by its name to $DESTINATION as :latest
