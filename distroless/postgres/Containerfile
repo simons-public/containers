@@ -1,0 +1,100 @@
+FROM archlinux AS builder
+
+ARG ARCH=amd64
+ARG POSTGRES_VERSION=18.1
+ARG POSTGRES_TARBALL=postgresql-${POSTGRES_VERSION}.tar.gz
+ARG POSTGRES_SOURCES=https://ftp.postgresql.org/pub/source
+ARG ZLIB_VERSION=1.3.1
+ARG ZLIB_SOURCE=https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
+ARG GNU_SOURCES=https://ftp.gnu.org/pub/gnu
+ARG OPENSSL_VERSION=3.3.1
+ARG OPENSSL_SOURCE=https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
+ARG NCURSES_VERSION=6.5
+ARG NCURSES_SOURCE=${GNU_SOURCES}/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
+ARG READLINE_VERSION=8.2
+ARG READLINE_SOURCE=${GNU_SOURCES}/readline/readline-${READLINE_VERSION}.tar.gz
+ARG DASH_VERSION=0.5.13
+ARG DASH_SOURCE=http://gondor.apana.org.au/~herbert/dash/files/dash-${DASH_VERSION}.tar.gz
+
+RUN pacman -Sy --noconfirm base-devel perl python busybox
+
+WORKDIR /build/zlib
+RUN curl --location --output zlib.tar.gz \
+  ${ZLIB_SOURCE} \
+  && tar xf zlib.tar.gz --strip-components=1 \
+  && ./configure --prefix=/usr \
+  && make -j$(nproc) \
+  && make install DESTDIR=/base
+
+WORKDIR /build/openssl
+RUN curl --location --output openssl.tar.gz ${OPENSSL_SOURCE} \
+  && tar xf openssl.tar.gz --strip-components=1 \
+  && ./Configure linux-x86_64 --prefix=/usr --libdir=/usr/lib no-tests no-docs \
+    --with-zlib-include=/base/usr/include --with-zlib-lib=/base/usr/lib \
+  && make -j$(nproc) \
+  && make install DESTDIR=/base
+
+WORKDIR /build/ncurses
+RUN curl --location --output ncurses.tar.gz ${NCURSES_SOURCE} \
+  && tar xf ncurses.tar.gz --strip-components=1 \
+  && ./configure --prefix=/usr --with-shared --without-debug \
+    --without-ada --enable-widec --without-cxx \
+  && make -j$(nproc) \
+  && make install DESTDIR=/base
+
+WORKDIR /build/readline
+RUN curl --location --output readline.tar.gz ${READLINE_SOURCE} \
+  && tar xf readline.tar.gz --strip-components=1 \
+  && CPPFLAGS="-I/base/usr/include" LDFLAGS="-L/base/usr/lib" \
+    ./configure --prefix=/usr --with-curses --enable-multibyte \
+  && make -j$(nproc) \
+  && make install DESTDIR=/base
+
+WORKDIR /build/postgres
+RUN curl --location --output postgresql.tar.gz \
+  "${POSTGRES_SOURCES}/v${POSTGRES_VERSION}/${POSTGRES_TARBALL}" \
+  && tar xf postgresql.tar.gz --strip-components=1 \
+  && pacman -Rdd --noconfirm icu \
+  && CPPFLAGS="-I/base/usr/include" LDFLAGS="-L/base/usr/lib" \
+    ./configure --prefix=/usr --disable-rpath --with-openssl \
+    --enable-thread-safety --with-uuid=e2fs --without-icu \
+  && make -j$(nproc) \
+  && make install DESTDIR=/base
+
+RUN rm -fr /base/usr/lib/{pkgconfig,cmake} /base/usr/share/{doc,info}
+
+# inidtb requires an 'sh' to call postgres
+WORKDIR /build/dash
+RUN curl --location --output dash.tar.gz \
+  "${DASH_SOURCE}" \
+  && tar xf dash.tar.gz --strip-components=1 \
+  && ./configure \
+  && make -j$(nproc) \
+  && cp src/dash /base/usr/bin/sh  
+
+WORKDIR /build/entrypoint
+COPY entrypoint.c ./entrypoint.c
+RUN gcc -O2 -o /base/usr/bin/entrypoint entrypoint.c
+
+FROM distroless/base
+ARG POSTGRES_VERSION=18.1
+
+COPY --from=builder /base/usr/lib/ /usr/lib/
+COPY --from=builder /base/usr/share/ /usr/share/
+COPY --from=builder /base/usr/bin/ /usr/bin/
+COPY ./passwd /etc/passwd
+COPY ./shadow /etc/shadow
+
+USER postgres
+WORKDIR /var/lib/postgresql/data
+ENV PGDATA=/var/lib/postgresql/data
+ENV PWD=/var/lib/postgresql/data
+
+ENTRYPOINT ["entrypoint", "-h", "0.0.0.0"]
+
+LABEL org.opencontainers.image.title="distroless posgtres"
+LABEL org.opencontainers.image.description="distroless posgtres"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.volumes.data="/var/lib/postgresql/data"
+LABEL org.opencontainers.image.volumes.init="/initdb"
+LABEL build.posgtres.version="${POSTGRES_VERSION}"
