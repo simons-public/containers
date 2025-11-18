@@ -47,6 +47,15 @@ RUN mkdir -p /build/glibc \
   && make -j$(nproc) \
   && make install DESTDIR=/base
 
+# Generate all UTF-8 locales
+RUN mkdir -p /base/usr/lib/locale && \
+    ls /usr/share/i18n/locales \
+      | grep -v -E '^(C|POSIX|i18n|iso14651_|translit_|.*\.deprecated$)' \
+      | xargs -P"$(nproc)" -I{} \
+          sh -c 'localedef \
+                    --prefix=/base \
+                    -i {} -f UTF-8 {}.UTF-8 2>/dev/null || true'
+
 COPY ./etc/ /base/etc/
 
 # Cleanup base dir
