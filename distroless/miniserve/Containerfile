@@ -1,0 +1,23 @@
+FROM archlinux as fetch
+
+ARG MINISERVE_VERSION=0.32.0
+ADD https://github.com/svenstaro/miniserve/releases/download/v${MINISERVE_VERSION}/miniserve-${MINISERVE_VERSION}-x86_64-unknown-linux-musl /bin/miniserve
+RUN chmod 0755 /bin/miniserve
+
+FROM scratch
+
+COPY ./passwd /etc/passwd
+COPY ./shadow /etc/shadow
+COPY --from=fetch /bin/miniserve /bin/miniserve
+
+USER http
+WORKDIR /srv/http
+ENV HOME=/srv/http
+ENV MINISERVE_INDEX=index.html
+ENV MINISERVE_PRETTY_URLS=true
+ENV MINISERVE_NO_SYMLINKS=true
+ENV MINISERVE_HIDDEN=false
+ENV MINISERVE_HIDE_VERSION_FOOTER=true
+ENV MINISERVE_DISABLE_INDEXING=true
+
+ENTRYPOINT ["/bin/miniserve", "."]
