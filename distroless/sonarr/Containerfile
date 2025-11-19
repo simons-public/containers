@@ -1,0 +1,45 @@
+FROM archlinux AS builder
+
+ARG SONARR_VERSION=4.0.16.2944
+ARG SONARR_RELEASES=https://github.com/Sonarr/Sonarr/releases/download/
+ARG SQLITE_VERSION=3510000
+ARG SQLITE_SOURCE=https://sqlite.org/2025/sqlite-autoconf-${SQLITE_VERSION}.tar.gz
+
+RUN pacman -Sy --noconfirm base-devel
+
+WORKDIR /build/sqlite3
+RUN curl --location --output sqlite3.tar.gz ${SQLITE_SOURCE} \
+  && tar xf sqlite3.tar.gz --strip-components=1 \
+  && ./configure \
+       --prefix=/usr \
+       --libdir=/usr/lib \
+       --enable-fts5 \
+       --disable-static \
+  && make -j$(nproc) \
+  && make install DESTDIR=/base
+
+WORKDIR /extract/sonarr
+RUN curl --location --output sonarr.tar.gz \
+      ${SONARR_RELEASES}/v${SONARR_VERSION}/Sonarr.main.${SONARR_VERSION}.linux-x64.tar.gz \
+  && tar xf sonarr.tar.gz --strip-components=1
+
+FROM distroless/dotnet
+ARG SONARR_VERSION=4.0.16.2944
+
+COPY --from=builder /base/usr/lib/ /usr/lib/
+COPY --from=builder /extract/sonarr /opt/sonarr
+
+COPY ./passwd /etc/passwd
+COPY ./shadow /etc/shadow
+
+USER sonarr
+WORKDIR /var/lib/sonarr
+ENV HOME=/var/lib/sonarr
+
+ENTRYPOINT ["/opt/bin/Sonarr"]
+
+LABEL org.opencontainers.image.title="distroless sonarr"
+LABEL org.opencontainers.image.description="distroless sonarr"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.volumes.data="/var/lib/sonarr"
+LABEL build.sonarr.version="${SONARR_VERSION}"
