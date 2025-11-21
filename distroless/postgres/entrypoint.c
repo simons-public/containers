@@ -8,6 +8,14 @@
 #include <string.h>
 #include <errno.h>
 
+#define POSTGRES_UID 1000
+#define POSTGRES_GID 1000
+
+static int file_exists(const char *path) {
+    struct stat st;
+    return stat(path, &st) == 0;
+}
+
 static int is_sql_file(const char *name) {
     size_t len = strlen(name);
     return (len > 4 && strcmp(name + len - 4, ".sql") == 0);
@@ -15,53 +23,48 @@ static int is_sql_file(const char *name) {
 
 static int is_regular_file(const char *path) {
     struct stat st;
-    return (stat(path, &st) == 0 && S_ISREG(st.st_mode));
+    return stat(path, &st) == 0 && S_ISREG(st.st_mode);
 }
 
-static int file_exists(const char *path) {
-    struct stat st;
-    return stat(path, &st) == 0;
+static void drop_privileges() {
+    if (setgid(POSTGRES_GID) != 0) {
+        perror("setgid");
+        exit(1);
+    }
+    if (setuid(POSTGRES_UID) != 0) {
+        perror("setuid");
+        exit(1);
+    }
 }
 
 static void run_initdb(const char *pgdata) {
-    fprintf(stderr, "[entrypoint] Running initdb...\n");
-
     pid_t pid = fork();
     if (pid < 0) {
-        perror("[entrypoint] fork() for initdb failed");
+        perror("fork initdb");
         exit(1);
     }
 
     if (pid == 0) {
-        // child
-        execlp("initdb",
-               "initdb",
+        execlp("initdb", "initdb",
                "-D", pgdata,
                "--locale=en_US.utf8",
                NULL);
-
-        perror("[entrypoint] exec initdb failed");
+        perror("exec initdb");
         exit(1);
     }
 
-    // parent
     int status;
     waitpid(pid, &status, 0);
-
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-        fprintf(stderr, "[entrypoint] initdb failed with status %d\n", status);
+        fprintf(stderr, "[entrypoint] initdb failed\n");
         exit(1);
     }
 }
 
 static void run_sql_files(const char *pgdata) {
     DIR *d = opendir("/initdb");
-    if (!d) {
-        if (errno == ENOENT)
-            return;
-        perror("[entrypoint] opendir /initdb failed");
-        exit(1);
-    }
+    if (!d)
+        return;
 
     struct dirent *ent;
 
@@ -75,49 +78,43 @@ static void run_sql_files(const char *pgdata) {
         if (!is_regular_file(path))
             continue;
 
-        fprintf(stderr, "[entrypoint] Running %s...\n", path);
+        fprintf(stderr, "[entrypoint] Running %s\n", path);
 
         int pipefd[2];
-        if (pipe(pipefd) != 0) {
-            perror("[entrypoint] pipe failed");
-            exit(1);
-        }
+        pipe(pipefd);
 
         pid_t pid = fork();
         if (pid < 0) {
-            perror("[entrypoint] fork() failed");
+            perror("fork");
             exit(1);
         }
 
         if (pid == 0) {
-            // child: postgres --single < SQL
             close(pipefd[1]);
             dup2(pipefd[0], STDIN_FILENO);
 
-            execlp("postgres",
-                   "postgres",
+            execlp("postgres", "postgres",
                    "--single",
                    "-D", pgdata,
                    "postgres",
                    NULL);
 
-            perror("[entrypoint] exec postgres --single failed");
+            perror("exec postgres --single");
             exit(1);
         }
 
-        // parent: feed the SQL file
         close(pipefd[0]);
+
         FILE *fp = fopen(path, "r");
         if (!fp) {
-            perror("[entrypoint] fopen SQL file failed");
+            perror("fopen");
             exit(1);
         }
 
         char buf[4096];
         size_t n;
-        while ((n = fread(buf, 1, sizeof(buf), fp)) > 0) {
+        while ((n = fread(buf, 1, sizeof(buf), fp)) > 0)
             write(pipefd[1], buf, n);
-        }
 
         fclose(fp);
         close(pipefd[1]);
@@ -137,17 +134,30 @@ static void run_sql_files(const char *pgdata) {
 int main(int argc, char **argv, char **envp) {
     const char *pgdata = "/var/lib/postgresql/data";
 
-    char version_path[512];
-    snprintf(version_path, sizeof(version_path), "%s/PG_VERSION", pgdata);
+    char version_file[512];
+    snprintf(version_file, sizeof(version_file), "%s/PG_VERSION", pgdata);
 
-    if (!file_exists(version_path)) {
+    if (!file_exists(version_file)) {
+        fprintf(stderr, "[entrypoint] Initializing cluster...\n");
+
+        mkdir("/var/lib/postgresql", 0755);
+        mkdir(pgdata, 0700);
+
+        chown("/var/lib/postgresql", POSTGRES_UID, POSTGRES_GID);
+        chown(pgdata, POSTGRES_UID, POSTGRES_GID);
+
+        drop_privileges();
+
         run_initdb(pgdata);
         run_sql_files(pgdata);
+
+    } else {
+        drop_privileges();
     }
 
-    fprintf(stderr, "[entrypoint] Starting real postgres...\n");
-
+    fprintf(stderr, "[entrypoint] Starting postgres...\n");
     execve("/usr/bin/postgres", argv, envp);
-    perror("[entrypoint] execve real postgres failed");
+    perror("execve postgres");
     return 1;
 }
+
