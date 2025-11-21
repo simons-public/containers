@@ -61,6 +61,11 @@ RUN curl --location --output postgresql.tar.gz \
   && make -j$(nproc) \
   && make install DESTDIR=/base
 
+# Build contrib extensions (including system_stats)
+WORKDIR /build/postgres/contrib
+RUN make -j$(nproc) \
+  && make install DESTDIR=/base
+
 RUN rm -fr /base/usr/lib/{pkgconfig,cmake} /base/usr/share/{doc,info}
 
 # inidtb requires an 'sh' to call postgres
@@ -96,4 +101,4 @@ LABEL org.opencontainers.image.description="distroless posgtres"
 LABEL org.opencontainers.image.version="0.1.0"
 LABEL org.opencontainers.image.volumes.data="/var/lib/postgresql/data"
 LABEL org.opencontainers.image.volumes.init="/initdb"
-LABEL build.posgtres.version="${POSTGRES_VERSION}"
+LABEL build.postgres.version="${POSTGRES_VERSION}"
