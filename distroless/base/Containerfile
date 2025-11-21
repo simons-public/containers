@@ -60,7 +60,7 @@ COPY ./etc/ /base/etc/
 
 # Cleanup base dir
 RUN find /base/usr -name '*.h' -o -name '*.a' -o -name '*.o' -delete \
-  && rm -f /base/usr/bin/* \
+  && find /base/usr/bin -type f ! -name 'locale' -delete \
   && rm -fr /base/usr/include \
   && rm -fr /base/usr/lib/audit \
   && rm -fr /base/usr/share/{info,i18n} \
