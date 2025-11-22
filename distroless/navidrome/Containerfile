@@ -1,0 +1,22 @@
+FROM archlinux as fetch
+
+ARG NAVIDROME_VERSION=0.58.5
+
+WORKDIR /extract/navidrome
+ADD https://github.com/navidrome/navidrome/releases/download/v${NAVIDROME_VERSION}/navidrome_${NAVIDROME_VERSION}_linux_amd64.tar.gz /extract/navidrome/navidrome.tar.gz
+RUN tar xf navidrome.tar.gz
+
+FROM scratch
+
+COPY ./passwd /etc/passwd
+COPY ./shadow /etc/shadow
+COPY --from=fetch /extract/navidrome/navidrome /bin/navidrome
+
+USER navidrome
+WORKDIR /var/lib/navidrome
+ENV HOME=/var/lib/navidrome
+ENV ND_ENABLEEXTERNALSERVICES=false
+ENV ND_ENABLEINSIGHTSCOLLECTOR=false
+
+ENTRYPOINT ["/bin/navidrome", \
+    "--address", "0.0.0.0"]
