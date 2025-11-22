@@ -36,7 +36,7 @@ USER sonarr
 WORKDIR /var/lib/sonarr
 ENV HOME=/var/lib/sonarr
 
-ENTRYPOINT ["/opt/bin/Sonarr"]
+ENTRYPOINT ["/opt/sonarr/Sonarr", "-nobrowser", "-data=/var/lib/sonarr"]
 
 LABEL org.opencontainers.image.title="distroless sonarr"
 LABEL org.opencontainers.image.description="distroless sonarr"
