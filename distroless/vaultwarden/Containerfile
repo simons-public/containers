@@ -6,8 +6,8 @@ ARG BW_WEB_VERSION=2025.7.0
 ARG BW_GITHUB_URL=https://github.com/dani-garcia/bw_web_builds/releases/download
 ARG BW_RELEASE=${BW_GITHUB_URL}/v${BW_WEB_VERSION}/bw_web_v${BW_WEB_VERSION}.tar.gz
 
-RUN pacman -Syq --noconfirm base-devel pkgconf \
-  cargo openssl postgresql
+RUN pacman -Sy --noconfirm base-devel pkgconf \
+  cargo openssl postgresql >/dev/null
 
 WORKDIR /tmp
 RUN curl --silent --show-error --location --output vaultwarden.tar.gz \

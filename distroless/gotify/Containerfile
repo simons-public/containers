@@ -5,7 +5,7 @@ ARG GOTIFY_VERSION=2.7.3
 ARG GOTIFY_ZIP=gotify-linux-amd64.zip
 ARG GITHUB_URL=https://github.com/gotify/server/releases/download
 
-RUN pacman -Syq --noconfirm unzip
+RUN pacman -Sy --noconfirm unzip >/dev/null
 
 WORKDIR /extract/gotify
 RUN curl --silent --show-error --location --output gotify.tar.gz \

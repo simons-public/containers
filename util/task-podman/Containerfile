@@ -1,8 +1,8 @@
 FROM archlinux:latest
 
-RUN pacman -Syq --noconfirm \
+RUN pacman -Sy --noconfirm \
         podman \
         go-task \
-        git
+        git >/dev/null
 
 CMD ["/bin/bash"]

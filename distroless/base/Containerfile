@@ -6,7 +6,7 @@ ARG CA_SCRIPT=https://github.com/curl/curl/raw/refs/heads/master/scripts/mk-ca-b
 ARG GLIBC_VERSION=2.42
 ARG GLIBC_SOURCE=https://ftp.gnu.org/gnu/glibc/glibc-${GLIBC_VERSION}.tar.xz
 
-RUN pacman -Syq --noconfirm base-devel linux-api-headers python lzip
+RUN pacman -Sy --noconfirm base-devel linux-api-headers python lzip >/dev/null
 
 RUN mkdir -p \
  /base/{dev,etc,proc,run,sys,tmp,usr} \
