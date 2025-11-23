@@ -1,0 +1,29 @@
+FROM archlinux AS builder
+
+ARG ARCH=amd64
+ARG GOTIFY_VERSION=2.7.3
+ARG GOTIFY_ZIP=gotify-linux-amd64.zip
+ARG GITHUB_URL=https://github.com/gotify/server/releases/download
+
+RUN pacman -Sy --noconfirm unzip
+
+WORKDIR /extract/gotify
+RUN curl --location --output gotify.tar.gz \
+  "${GITHUB_URL}/v${GOTIFY_VERSION}/${GOTIFY_ZIP}" \
+  && unzip gotify.tar.gz
+
+FROM distroless
+ARG GOTIFY_VERSION=2.7.3
+
+WORKDIR /var/lib/gotify
+COPY --from=builder /extract/gotify/gotify-linux-amd64 /usr/bin/gotify
+ENV HOME=/var/lib/gotify
+
+ENTRYPOINT ["/usr/bin/gotify"]
+
+LABEL org.opencontainers.image.title="distroless gotify"
+LABEL org.opencontainers.image.description="distroless gotify"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.volumes.config="/etc/gotify"
+LABEL org.opencontainers.image.volumes.data="/var/lib/gotify"
+LABEL build.gotify.version="${GOTIFY_VERSION}"
