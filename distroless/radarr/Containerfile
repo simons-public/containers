@@ -5,7 +5,7 @@ ARG RADARR_RELEASES=https://github.com/Radarr/Radarr/releases/download/
 ARG SQLITE_VERSION=3510000
 ARG SQLITE_SOURCE=https://sqlite.org/2025/sqlite-autoconf-${SQLITE_VERSION}.tar.gz
 
-RUN pacman -Sy --noconfirm base-devel
+RUN pacman -Syq --noconfirm base-devel
 
 WORKDIR /build/sqlite3
 RUN curl --silent --show-error --location --output sqlite3.tar.gz \

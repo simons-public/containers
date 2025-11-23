@@ -5,7 +5,7 @@ ARG LLDAP_VERSION=0.6.2
 ARG LLDAP_TARBALL=amd64-lldap.tar.gz
 ARG GITHUB_URL=https://github.com/lldap/lldap/releases/download
 
-RUN pacman -Sy --noconfirm busybox
+RUN pacman -Syq --noconfirm busybox
 WORKDIR /tmp/lldap
 RUN curl --silent --show-error --location --output lldap.tar.gz \
   "${GITHUB_URL}/v${LLDAP_VERSION}/${LLDAP_TARBALL}" \

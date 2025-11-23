@@ -3,7 +3,7 @@ FROM archlinux AS builder
 ARG DOTNET_VERSION=8.0.22
 ARG DOTNET_TARFILE=https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/${DOTNET_VERSION}/aspnetcore-runtime-${DOTNET_VERSION}-linux-x64.tar.gz
 
-RUN pacman -Sy --noconfirm busybox libunwind
+RUN pacman -Syq --noconfirm busybox libunwind
 
 WORKDIR /tmp/dotnet
 RUN curl --silent --show-error --location --output dotnet.tar.gz \

@@ -7,7 +7,7 @@ ARG ZLIB_SOURCE=https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
 ARG OPENSSL_VERSION=3.3.1
 ARG OPENSSL_SOURCE=https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
 
-RUN pacman -Sy --noconfirm base-devel curl perl python busybox
+RUN pacman -Syq --noconfirm base-devel curl perl python busybox
 
 WORKDIR /build/zlib
 RUN curl --silent --show-error --location --output zlib.tar.gz \
