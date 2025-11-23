@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -17,9 +16,6 @@ jobs:
         run: |
           sh -s -- -b ~/.local/bin < <(curl -s https://taskfile.dev/install.sh)
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Podman info
-        run: podman info
 
       - name: Podman login
         run: >
@@ -30,26 +26,17 @@ jobs:
           GHCR_USERNAME: ${{secrets.GHCR_USERNAME}}
           GHCR_TOKEN: ${{secrets.GHCR_TOKEN}}
 
-      # https://github.com/containers/podman/discussions/17868
-      - name: Tar as root
-        run: |
-          sudo mv -fv /usr/bin/tar /usr/bin/tar.orig
-          echo -e '#!/bin/sh\n\nsudo /usr/bin/tar.orig "$@"' \
-            | sudo tee -a /usr/bin/tar
-          sudo chmod +x /usr/bin/tar
-
-      - name: Prep Podman root storage for caching
-        run: |
-          sudo mkdir -p /var/lib/containers/storage
-          sudo chown -R "$USER":"$USER" /var/lib/containers
-
-      - name: Cache Podman user/root storage
+      - name: Cache Podman user storage
         uses: actions/cache@v4
         with:
           path: |
             ~/.local/share/containers/storage
-            /var/lib/containers/storage
-          key: ${{ runner.os }}-podman-storage
+          key: podman-storage
+          enableCrossOsArchive: false
+          save-always: true
+      
+      - name: Podman info
+        run: podman info
 
       - name: Build & push
         run: task build-all && task push-all
