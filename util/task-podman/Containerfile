@@ -1,0 +1,8 @@
+FROM archlinux:latest
+
+RUN pacman -Sy --noconfirm \
+        podman \
+        go-task \
+        git
+
+CMD ["/bin/bash"]
