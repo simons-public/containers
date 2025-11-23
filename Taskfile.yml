@@ -25,13 +25,11 @@ tasks:
       NAME: '{{ index .MATCH 0 }}'
       TAG: '{{ index .MATCH 1 }}'
     cmds:
-    - |
-      [ "$GITHUB_ACTIONS" = "true" ] && echo "::group::Build {{.NAME}}:{{.TAG}}" || true
+    - echo "::group::Build {{.NAME}}:{{.TAG}}"
     - >
       podman build --build-arg VERSION={{.TAG}}
       -t {{.NAME}}:{{.TAG}} {{.NAME}}/
-    - |
-      [ "$GITHUB_ACTIONS" = "true" ] && echo "::endgroup::" || true
+    - echo "::endgroup::"
 
   build:*:
     desc: Build image by its name as latest (build:distroless/dotnet)
@@ -46,14 +44,12 @@ tasks:
       NAME: '{{ index .MATCH 0 }}'
       TAG: '{{ index .MATCH 1 }}'
     cmds:
-    - |
-      [ "$GITHUB_ACTIONS" = "true" ] && echo "::group::Push {{.NAME}}:{{.TAG}}" || true
+    - echo "::group::Push {{.NAME}}:{{.TAG}}"
     - >
       podman tag {{.NAME}}:{{.TAG}}
       {{.DESTINATION}}/{{.NAME}}:{{.TAG}}
     - podman push {{.DESTINATION}}/{{.NAME}}:{{.TAG}}
-    - |
-      [ "$GITHUB_ACTIONS" = "true" ] && echo "::endgroup::" || true
+    - echo "::endgroup::"
 
   push:*:
     desc: Push an image by its name to $DESTINATION as :latest
