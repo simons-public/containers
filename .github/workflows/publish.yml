@@ -1,8 +1,9 @@
 ---
 name: Build and Publish With Podman+Task
+permissions: read-all
 on:
   push:
-    branches: ["main"]
+    branches: [main]
   workflow_dispatch: {}
 
 jobs:

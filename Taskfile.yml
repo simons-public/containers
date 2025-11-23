@@ -12,7 +12,7 @@ tasks:
   help:
     desc: Help
     silent: true
-    aliases: ["default"]
+    aliases: [default]
     cmds:
     - printf 'Containers꞉ '
     - printf '%s\t' "{{ .CONTAINERS }}"
