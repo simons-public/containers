@@ -20,11 +20,15 @@ RUN for lib in crypto gcc_s ssl stdc++ z \
     cp -av /usr/lib/lib${lib}.so* /base/usr/lib/; \
   done
 
+RUN mkdir -p /base/etc/ssl \
+  && ln -sv certs/ca-certificates.crt /base/etc/ssl/cert.pem
+
 FROM distroless
 ARG DOTNET_VERSION=8.0.22
 
 COPY --from=builder /base/usr/share/dotnet/ /usr/share/dotnet/
 COPY --from=builder /base/usr/lib/ /usr/lib/
+COPY --from=builder /base/etc/ssl/ /etc/ssl/
 
 LABEL org.opencontainers.image.title="distroless dotnet"
 LABEL org.opencontainers.image.description="distroless dotnet"
