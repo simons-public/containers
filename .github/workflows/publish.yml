@@ -1,8 +1,8 @@
+---
 name: Build and Publish With Podman+Task
-
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch: {}
 
 jobs:
@@ -10,32 +10,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install Podman
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y podman
+      - name: Install Task
+        run: |
+          sh -s -- -b ~/.local/bin < <(curl -s https://taskfile.dev/install.sh)
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-    - name: Install Task
-      run: |
-        sh -s -- -b ~/.local/bin < <(curl -s https://taskfile.dev/install.sh)
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Podman login
+        run: >
+          echo "${GHCR_TOKEN}" |
+          podman login ghcr.io -u "${GHCR_USERNAME}"
+          --password-stdin
+        env:
+          GHCR_USERNAME: ${{secrets.GHCR_USERNAME}}
+          GHCR_TOKEN: ${{secrets.GHCR_TOKEN}}
 
-    - name: Podman login
-      run: echo "${GHCR_TOKEN}" | podman login ghcr.io -u "${GHCR_USERNAME}" --password-stdin
-      env:
-        GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-        GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+      # https://github.com/containers/podman/discussions/17868
+      - name: Tar as root
+        run: |
+          sudo mv -fv /usr/bin/tar /usr/bin/tar.orig
+          echo -e '#!/bin/sh\n\nsudo /usr/bin/tar.orig "$@"' \
+            | sudo tee -a /usr/bin/tar
+          sudo chmod +x /usr/bin/tar
 
-    - name: Cache Podman layers
-      uses: actions/cache@v4
-      with:
-        path: ~/.local/share/containers/storage
-        key: ${{ runner.os }}-podman-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-podman-
+      - name: Prep Podman root storage for caching
+        run: |
+          sudo mkdir -p /var/lib/containers/storage
+          sudo chown -R "$USER":"$USER" /var/lib/containers
 
-    - name: Build & push
-      run: task build-all && task push-all
+      - name: Cache Podman user/root storage
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/containers/storage
+            /var/lib/containers/storage
+          key: ${{ runner.os }}-podman-storage
 
+      - name: Build & push
+        run: task build-all && task push-all
