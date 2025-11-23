@@ -1,0 +1,30 @@
+name: Build and Publish With Podman+Task
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/simons-public/util/task-podman:latest
+      options: --privileged
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Login to GHCR
+      run: |
+        echo "${GHCR_TOKEN}" | podman login ghcr.io \
+          -u "${GHCR_USERNAME}" --password-stdin
+      env:
+        GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+        GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+
+    - name: Build & Push using Task
+      run: task build-all && task push-all
+
