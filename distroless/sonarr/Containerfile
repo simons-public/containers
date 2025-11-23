@@ -23,7 +23,7 @@ RUN curl --location --output sonarr.tar.gz \
       ${SONARR_RELEASES}/v${SONARR_VERSION}/Sonarr.main.${SONARR_VERSION}.linux-x64.tar.gz \
   && tar xf sonarr.tar.gz --strip-components=1
 
-FROM distroless/dotnet
+FROM ghcr.io/simons-public/distroless/dotnet
 ARG SONARR_VERSION=4.0.16.2944
 
 COPY --from=builder /base/usr/lib/ /usr/lib/

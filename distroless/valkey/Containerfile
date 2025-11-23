@@ -44,7 +44,7 @@ RUN rm -fr \
     /base/usr/lib/pkgconfig \
     /base/usr/lib/cmake
 
-FROM distroless
+FROM ghcr.io/simons-public/distroless/base
 
 ARG VALKEY_VERSION=9.0.0
 

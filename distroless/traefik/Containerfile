@@ -10,7 +10,7 @@ RUN curl --location --output traefik.tar.gz \
   "${GITHUB_URL}/v${TRAEFIK_VERSION}/${TRAEFIK_TARBALL}" \
   && tar xzf traefik.tar.gz
 
-FROM distroless
+FROM ghcr.io/simons-public/distroless/base
 ARG TRAEFIK_VERSION=3.6.1
 
 COPY --from=builder /tmp/traefik /usr/bin/traefik

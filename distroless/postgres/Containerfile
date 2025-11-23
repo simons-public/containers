@@ -81,7 +81,7 @@ WORKDIR /build/entrypoint
 COPY entrypoint.c ./entrypoint.c
 RUN gcc -O2 -o /base/usr/bin/entrypoint entrypoint.c
 
-FROM distroless/base
+FROM ghcr.io/simons-public/distroless/base
 ARG POSTGRES_VERSION=18.1
 
 COPY --from=builder /base/usr/lib/ /usr/lib/

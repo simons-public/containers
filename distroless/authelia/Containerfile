@@ -10,7 +10,7 @@ RUN curl --location --output authelia.tar.gz \
   "${GITHUB_URL}/v${AUTHELIA_VERSION}/${AUTHELIA_TARBALL}" \
   && tar xzf authelia.tar.gz
 
-FROM distroless
+FROM ghcr.io/simons-public/distroless/base
 ARG AUTHELIA_VERSION=4.39.14
 COPY --from=builder /tmp/authelia /usr/bin/authelia
 

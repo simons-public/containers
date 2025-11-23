@@ -10,7 +10,7 @@ RUN curl --location --output donetick.tar.gz \
   "${GITHUB_URL}/v${DONETICK_VERSION}/${DONETICK_TARBALL}" \
   && tar xzf donetick.tar.gz
 
-FROM distroless
+FROM ghcr.io/simons-public/distroless/base
 
 ARG DONETICK_VERSION=0.1.64
 

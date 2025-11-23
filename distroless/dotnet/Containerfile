@@ -23,7 +23,7 @@ RUN for lib in crypto gcc_s ssl stdc++ z \
 RUN mkdir -p /base/etc/ssl \
   && ln -sv certs/ca-certificates.crt /base/etc/ssl/cert.pem
 
-FROM distroless
+FROM ghcr.io/simons-public/distroless/base
 ARG DOTNET_VERSION=8.0.22
 
 COPY --from=builder /base/usr/share/dotnet/ /usr/share/dotnet/

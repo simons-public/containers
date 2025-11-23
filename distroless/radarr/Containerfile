@@ -23,7 +23,7 @@ RUN curl --location --output radarr.tar.gz \
       ${RADARR_RELEASES}/v${RADARR_VERSION}/Radarr.master.${RADARR_VERSION}.linux-core-x64.tar.gz \
   && tar xf radarr.tar.gz --strip-components=1
 
-FROM distroless/dotnet
+FROM ghcr.io/simons-public/distroless/dotnet
 ARG RADARR_VERSION=6.0.4.10291
 
 COPY --from=builder /base/usr/lib/ /usr/lib/

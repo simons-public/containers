@@ -65,8 +65,19 @@ tasks:
   build-all:
     desc: Build all images as :latest
     cmds:
+    # build deps first
+    - task build:distroless/base build:distroless/dotnet
+
+    # build the rest
     - for: { var: CONTAINERS }
-      cmd: task build:{{.ITEM}}
+      cmd: |
+        case "{{.ITEM}}" in
+          distroless/base|distroless/dotnet)
+            echo "Skipping {{.ITEM}} (handled already)"
+            exit 0
+            ;;
+        esac
+        task build:{{.ITEM}}
 
   push-all:
     desc: Push all images as :latest

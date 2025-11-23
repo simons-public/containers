@@ -28,6 +28,14 @@ jobs:
         GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
         GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
 
+    - name: Cache Podman layers
+      uses: actions/cache@v4
+      with:
+        path: ~/.local/share/containers/storage
+        key: ${{ runner.os }}-podman-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-podman-
+
     - name: Build & push
       run: task build-all && task push-all
 

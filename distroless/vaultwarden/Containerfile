@@ -30,7 +30,7 @@ RUN for lib in ssl crypto pq gcc_s \
 WORKDIR /base/usr/bin
 RUN cp /tmp/target/release/vaultwarden ./
 
-FROM distroless
+FROM ghcr.io/simons-public/distroless/base
 ARG VAULTWARDEN_VERSION=1.34.3
 ARG BW_WEB_VERSION=2025.7.0
 

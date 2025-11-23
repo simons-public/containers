@@ -11,7 +11,7 @@ RUN curl --location --output lldap.tar.gz \
   "${GITHUB_URL}/v${LLDAP_VERSION}/${LLDAP_TARBALL}" \
   && tar xzf lldap.tar.gz --strip-components=1
 
-FROM distroless
+FROM ghcr.io/simons-public/distroless/base
 ARG LLDAP_VERSION=0.6.2
 
 COPY --from=builder /tmp/lldap/app /var/lib/lldap/app
