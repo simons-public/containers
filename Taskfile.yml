@@ -61,3 +61,15 @@ tasks:
       find . -name 'Containerfile' -print0 |
       xargs -0 -I{} sh -c
       'echo "Linting {}"; cat "{}" | podman run --rm -i hadolint/hadolint'
+
+  build-all:
+    desc: Build all images as :latest
+    cmds:
+    - for: { var: CONTAINERS }
+      cmd: task build:{{.ITEM}}
+
+  push-all:
+    desc: Push all images as :latest
+    cmds:
+    - for: { var: CONTAINERS }
+      cmd: task push:{{.ITEM}}
