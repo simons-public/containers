@@ -27,7 +27,10 @@ tasks:
     cmds:
     - echo "::group::Build {{.NAME}}:{{.TAG}}"
     - >
-      podman build --build-arg VERSION={{.TAG}}
+      podman build --layers 
+      --cache-to ghcr.io/simons-public/podman-cache 
+      --cache-from ghcr.io/simons-public/podman-cache
+      --build-arg VERSION={{.TAG}}
       -t {{.NAME}}:{{.TAG}} {{.NAME}}/
     - echo "::endgroup::"
 

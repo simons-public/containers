@@ -25,16 +25,7 @@ jobs:
         env:
           GHCR_USERNAME: ${{secrets.GHCR_USERNAME}}
           GHCR_TOKEN: ${{secrets.GHCR_TOKEN}}
-
-      - name: Cache Podman user storage
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.local/share/containers/storage
-          key: podman-storage
-          enableCrossOsArchive: false
-          save-always: true
-      
+     
       - name: Podman info
         run: podman info
 
