@@ -13,7 +13,7 @@ WORKDIR /tmp
 RUN curl --silent --show-error --location --output vaultwarden.tar.gz \
   "${GITHUB_URL}/${VAULTWARDEN_VERSION}.tar.gz" \
   && tar xf vaultwarden.tar.gz --strip-components=1 \
-  && cargo build --release --locked --no-default-features \
+  && cargo build --quiet --release --locked --no-default-features \
     --features postgresql
 
 WORKDIR /base/usr/share/vaultwarden/web_vault
