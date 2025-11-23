@@ -10,14 +10,16 @@ ARG OPENSSL_SOURCE=https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar
 RUN pacman -Sy --noconfirm base-devel curl perl python busybox
 
 WORKDIR /build/zlib
-RUN curl --location --output zlib.tar.gz ${ZLIB_SOURCE} \
+RUN curl --silent --show-error --location --output zlib.tar.gz \
+  ${ZLIB_SOURCE} \
   && tar xf zlib.tar.gz --strip-components=1 \
   && ./configure --prefix=/usr \
-  && make -j$(nproc) \
+  && make -s -j$(nproc) \
   && make install DESTDIR=/base
 
 WORKDIR /build/openssl
-RUN curl --location --output openssl.tar.gz ${OPENSSL_SOURCE} \
+RUN curl --silent --show-error --location --output openssl.tar.gz \
+  ${OPENSSL_SOURCE} \
   && tar xf openssl.tar.gz --strip-components=1 \
   && ./Configure linux-x86_64 \
        --prefix=/usr \
@@ -25,12 +27,12 @@ RUN curl --location --output openssl.tar.gz ${OPENSSL_SOURCE} \
        no-tests no-docs \
        --with-zlib-include=/base/usr/include \
        --with-zlib-lib=/base/usr/lib \
-  && make -j$(nproc) \
+  && make -s -j$(nproc) \
   && make install DESTDIR=/base
 
 WORKDIR /build/valkey
-RUN curl --location --output valkey.tar.gz \
-      ${VALKEY_SOURCES}/${VALKEY_VERSION}.tar.gz \
+RUN curl --silent --show-error --location --output valkey.tar.gz \
+  ${VALKEY_SOURCES}/${VALKEY_VERSION}.tar.gz \
   && tar xf valkey.tar.gz --strip-components=1 \
   && make BUILD_TLS=yes USE_SYSTEM_OPENSSL=yes \
         USE_SYSTEMD=no PREFIX=/usr \

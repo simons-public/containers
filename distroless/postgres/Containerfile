@@ -19,67 +19,70 @@ ARG DASH_SOURCE=http://gondor.apana.org.au/~herbert/dash/files/dash-${DASH_VERSI
 RUN pacman -Sy --noconfirm base-devel perl python busybox
 
 WORKDIR /build/zlib
-RUN curl --location --output zlib.tar.gz \
+RUN curl --silent --show-error --location --output zlib.tar.gz \
   ${ZLIB_SOURCE} \
   && tar xf zlib.tar.gz --strip-components=1 \
   && ./configure --prefix=/usr \
-  && make -j$(nproc) \
+  && make -s -j$(nproc) \
   && make install DESTDIR=/base
 
 WORKDIR /build/openssl
-RUN curl --location --output openssl.tar.gz ${OPENSSL_SOURCE} \
+RUN curl --silent --show-error --location --output openssl.tar.gz \
+  ${OPENSSL_SOURCE} \
   && tar xf openssl.tar.gz --strip-components=1 \
   && ./Configure linux-x86_64 --prefix=/usr --libdir=/usr/lib no-tests no-docs \
     --with-zlib-include=/base/usr/include --with-zlib-lib=/base/usr/lib \
-  && make -j$(nproc) \
+  && make -s -j$(nproc) \
   && make install DESTDIR=/base
 
 WORKDIR /build/ncurses
-RUN curl --location --output ncurses.tar.gz ${NCURSES_SOURCE} \
+RUN curl --silent --show-error --location --output ncurses.tar.gz \
+  ${NCURSES_SOURCE} \
   && tar xf ncurses.tar.gz --strip-components=1 \
   && ./configure --prefix=/usr --with-shared --without-debug \
     --without-ada --enable-widec --without-cxx \
-  && make -j$(nproc) \
+  && make -s -j$(nproc) \
   && make install DESTDIR=/base
 
 WORKDIR /build/readline
-RUN curl --location --output readline.tar.gz ${READLINE_SOURCE} \
+RUN curl --silent --show-error --location --output readline.tar.gz \
+  ${READLINE_SOURCE} \
   && tar xf readline.tar.gz --strip-components=1 \
   && CPPFLAGS="-I/base/usr/include" LDFLAGS="-L/base/usr/lib" \
     ./configure --prefix=/usr --with-curses --enable-multibyte \
-  && make -j$(nproc) \
+  && make -s -j$(nproc) \
   && make install DESTDIR=/base
 
 WORKDIR /build/postgres
-RUN curl --location --output postgresql.tar.gz \
+RUN curl --silent --show-error --location --output postgresql.tar.gz \
   "${POSTGRES_SOURCES}/v${POSTGRES_VERSION}/${POSTGRES_TARBALL}" \
   && tar xf postgresql.tar.gz --strip-components=1 \
   && pacman -Rdd --noconfirm icu \
   && CPPFLAGS="-I/base/usr/include" LDFLAGS="-L/base/usr/lib" \
     ./configure --prefix=/usr --disable-rpath --with-openssl \
     --enable-thread-safety --with-uuid=e2fs --without-icu \
-  && make -j$(nproc) \
+  && make -s -j$(nproc) \
   && make install DESTDIR=/base
 
 # Build contrib extensions (including system_stats)
 WORKDIR /build/postgres/contrib
-RUN make -j$(nproc) \
+RUN make -s -j$(nproc) \
   && make install DESTDIR=/base
-
-RUN rm -fr /base/usr/lib/{pkgconfig,cmake} /base/usr/share/{doc,info}
 
 # inidtb requires an 'sh' to call postgres
 WORKDIR /build/dash
-RUN curl --location --output dash.tar.gz \
+RUN curl --silent --show-error --location --output dash.tar.gz \
   "${DASH_SOURCE}" \
   && tar xf dash.tar.gz --strip-components=1 \
   && ./configure \
-  && make -j$(nproc) \
+  && make -s -j$(nproc) \
   && cp src/dash /base/usr/bin/sh  
 
 WORKDIR /build/entrypoint
 COPY entrypoint.c ./entrypoint.c
 RUN gcc -O2 -o /base/usr/bin/entrypoint entrypoint.c
+
+RUN rm -fr /base/usr/lib/{pkgconfig,cmake} /base/usr/share/{doc,info}
 
 FROM ghcr.io/simons-public/distroless/base
 ARG POSTGRES_VERSION=18.1

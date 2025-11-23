@@ -24,27 +24,27 @@ RUN mkdir -p \
 
 RUN mkdir -p /build/timezone \
   && cd /build/timezone \
-  && curl --location --output tzdb.tar.lz \
+  && curl --silent --show-error --location --output tzdb.tar.lz \
     ${TZ_RELEASES}/tzdb-${TZ_VERSION}.tar.lz \
   && tar xf tzdb.tar.lz --strip-components=1 \
-  && make zones DESTDIR=/base \
+  && make -s zones DESTDIR=/base \
   && ln -sf /usr/share/zoneinfo/UTC /base/etc/localtime
 
 RUN mkdir -p /build/ca \
   && cd /build/ca \
-  && curl --location --output mk-ca-bundle.pl ${CA_SCRIPT} \
+  && curl --silent --show-error --location --output mk-ca-bundle.pl ${CA_SCRIPT} \
   && perl mk-ca-bundle.pl /base/etc/ssl/certs/ca-certificates.crt
 
 RUN mkdir -p /build/glibc \
   && cd /build/glibc \
-  && curl --location --output glibc.tar.xz ${GLIBC_SOURCE} \
+  && curl --silent --show-error --location --output glibc.tar.xz ${GLIBC_SOURCE} \
   && tar xf glibc.tar.xz --strip-components=1 \
   && mkdir build && cd build \
   && ../configure --prefix=/usr --libdir=/usr/lib --sysconfdir=/etc \
     --enable-kernel=4.4 --with-bugurl=none --disable-static \
     --disable-selinux --disable-nscd --disable-obsolete-rpc \
-    --disable-werror \
-  && make -j$(nproc) \
+    --disable-werror --quiet \
+  && make -s -j$(nproc) \
   && make install DESTDIR=/base
 
 # Generate all UTF-8 locales

@@ -6,7 +6,7 @@ ARG DONETICK_TARBALL=donetick_Linux_${ARCH}.tar.gz
 ARG GITHUB_URL=https://github.com/donetick/donetick/releases/download
 
 WORKDIR /tmp
-RUN curl --location --output donetick.tar.gz \
+RUN curl --silent --show-error --location --output donetick.tar.gz \
   "${GITHUB_URL}/v${DONETICK_VERSION}/${DONETICK_TARBALL}" \
   && tar xzf donetick.tar.gz
 

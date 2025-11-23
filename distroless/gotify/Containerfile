@@ -8,7 +8,7 @@ ARG GITHUB_URL=https://github.com/gotify/server/releases/download
 RUN pacman -Sy --noconfirm unzip
 
 WORKDIR /extract/gotify
-RUN curl --location --output gotify.tar.gz \
+RUN curl --silent --show-error --location --output gotify.tar.gz \
   "${GITHUB_URL}/v${GOTIFY_VERSION}/${GOTIFY_ZIP}" \
   && unzip gotify.tar.gz
 

@@ -6,7 +6,7 @@ ARG AUTHELIA_TARBALL=authelia-v${AUTHELIA_VERSION}-linux-${ARCH}.tar.gz
 ARG GITHUB_URL=https://github.com/authelia/authelia/releases/download
 
 WORKDIR /tmp
-RUN curl --location --output authelia.tar.gz \
+RUN curl --silent --show-error --location --output authelia.tar.gz \
   "${GITHUB_URL}/v${AUTHELIA_VERSION}/${AUTHELIA_TARBALL}" \
   && tar xzf authelia.tar.gz
 

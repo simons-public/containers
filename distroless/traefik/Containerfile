@@ -6,7 +6,7 @@ ARG TRAEFIK_TARBALL=traefik_v${TRAEFIK_VERSION}_linux_${ARCH}.tar.gz
 ARG GITHUB_URL=https://github.com/traefik/traefik/releases/download
 
 WORKDIR /tmp
-RUN curl --location --output traefik.tar.gz \
+RUN curl --silent --show-error --location --output traefik.tar.gz \
   "${GITHUB_URL}/v${TRAEFIK_VERSION}/${TRAEFIK_TARBALL}" \
   && tar xzf traefik.tar.gz
 

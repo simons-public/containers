@@ -7,7 +7,7 @@ ARG GITHUB_URL=https://github.com/lldap/lldap/releases/download
 
 RUN pacman -Sy --noconfirm busybox
 WORKDIR /tmp/lldap
-RUN curl --location --output lldap.tar.gz \
+RUN curl --silent --show-error --location --output lldap.tar.gz \
   "${GITHUB_URL}/v${LLDAP_VERSION}/${LLDAP_TARBALL}" \
   && tar xzf lldap.tar.gz --strip-components=1
 

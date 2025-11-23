@@ -6,7 +6,7 @@ ARG DOTNET_TARFILE=https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime
 RUN pacman -Sy --noconfirm busybox libunwind
 
 WORKDIR /tmp/dotnet
-RUN curl --location --output dotnet.tar.gz \
+RUN curl --silent --show-error --location --output dotnet.tar.gz \
   ${DOTNET_TARFILE} \
   && tar xf dotnet.tar.gz \
   && mkdir -p /base/usr/share/dotnet \
