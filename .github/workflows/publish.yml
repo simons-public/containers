@@ -18,6 +18,9 @@ jobs:
           sh -s -- -b ~/.local/bin < <(curl -s https://taskfile.dev/install.sh)
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Podman info
+        run: podman info
+
       - name: Podman login
         run: >
           echo "${GHCR_TOKEN}" |
