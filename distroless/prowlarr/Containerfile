@@ -1,0 +1,46 @@
+FROM archlinux AS builder
+
+ARG PROWLARR_VERSION=2.3.0.5236
+ARG PROWLARR_RELEASES=https://github.com/Prowlarr/Prowlarr/releases/download/
+ARG SQLITE_VERSION=3510000
+ARG SQLITE_SOURCE=https://sqlite.org/2025/sqlite-autoconf-${SQLITE_VERSION}.tar.gz
+
+RUN pacman -Sy --noconfirm base-devel >/dev/null
+
+WORKDIR /build/sqlite3
+RUN curl --silent --show-error --location --output sqlite3.tar.gz \
+  ${SQLITE_SOURCE} \
+  && tar xf sqlite3.tar.gz --strip-components=1 \
+  && ./configure --quiet \
+       --prefix=/usr \
+       --libdir=/usr/lib \
+       --enable-fts5 \
+       --disable-static \
+  && make -s -j$(nproc) \
+  && make install DESTDIR=/base
+
+WORKDIR /extract/prowlarr
+RUN curl --silent --show-error --location --output prowlarr.tar.gz \
+  ${PROWLARR_RELEASES}/v${PROWLARR_VERSION}/Prowlarr.master.${PROWLARR_VERSION}.linux-core-x64.tar.gz \
+  && tar xf prowlarr.tar.gz --strip-components=1
+
+FROM ghcr.io/simons-public/distroless/dotnet
+ARG PROWLARR_VERSION=6.0.4.10291
+
+COPY --from=builder /base/usr/lib/ /usr/lib/
+COPY --from=builder /extract/prowlarr /opt/prowlarr
+
+COPY ./passwd /etc/passwd
+COPY ./shadow /etc/shadow
+
+USER prowlarr
+WORKDIR /var/lib/prowlarr
+ENV HOME=/var/lib/prowlarr
+
+ENTRYPOINT ["/opt/prowlarr/Prowlarr", "-nobrowser", "-data=/var/lib/prowlarr"]
+
+LABEL org.opencontainers.image.title="distroless prowlarr"
+LABEL org.opencontainers.image.description="distroless prowlarr"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.volumes.data="/var/lib/prowlarr"
+LABEL build.prowlarr.version="${PROWLARR_VERSION}"
