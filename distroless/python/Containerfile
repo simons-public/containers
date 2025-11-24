@@ -1,0 +1,117 @@
+FROM archlinux AS builder
+
+ARG PYTHON_VERSION=3.14.0
+ARG PYTHON_TARBALL=Python-${PYTHON_VERSION}.tgz
+ARG PYTHON_SOURCES=https://www.python.org/ftp/python/${PYTHON_VERSION}
+
+ARG ZLIB_VERSION=1.3.1
+ARG ZLIB_SOURCE=https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
+
+ARG OPENSSL_VERSION=3.6.0
+ARG OPENSSL_SOURCE=https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
+
+ARG NCURSES_VERSION=6.5
+ARG NCURSES_SOURCE=https://ftp.gnu.org/pub/gnu/ncurses/ncurses-${NCURSES_VERSION}.tar.gz
+
+ARG READLINE_VERSION=8.3
+ARG READLINE_SOURCE=https://ftp.gnu.org/pub/gnu/readline/readline-${READLINE_VERSION}.tar.gz
+
+ARG LIBFFI_VERSION=3.4.7
+ARG LIBFFI_SOURCE=https://github.com/libffi/libffi/releases/download/v${LIBFFI_VERSION}/libffi-${LIBFFI_VERSION}.tar.gz
+
+ARG BZIP2_VERSION=1.0.8
+ARG BZIP2_SOURCE=https://sourceware.org/pub/bzip2/bzip2-${BZIP2_VERSION}.tar.gz
+
+ARG XZ_VERSION=5.4.6
+ARG XZ_SOURCE=https://tukaani.org/xz/xz-${XZ_VERSION}.tar.gz
+
+RUN pacman -Sy --noconfirm base-devel perl python curl >/dev/null
+
+WORKDIR /build/zlib
+RUN curl --silent --show-error --location --output zlib.tar.gz \
+  ${ZLIB_SOURCE} \
+  && tar xf zlib.tar.gz --strip-components=1 \
+  && ./configure --prefix=/usr \
+  && make -s -j$(nproc) \
+  && make install DESTDIR=/base
+
+WORKDIR /build/openssl
+RUN curl --silent --show-error --location --output openssl.tar.gz \
+  ${OPENSSL_SOURCE} \
+  && tar xf openssl.tar.gz --strip-components=1 \
+  && ./Configure linux-x86_64 --prefix=/usr --libdir=/usr/lib no-tests no-docs \
+    --with-zlib-include=/base/usr/include --with-zlib-lib=/base/usr/lib \
+  && make -s -j$(nproc) \
+  && make install_sw DESTDIR=/base
+
+WORKDIR /build/ncurses
+RUN curl --silent --show-error --location --output ncurses.tar.gz \
+  ${NCURSES_SOURCE} \
+  && tar xf ncurses.tar.gz --strip-components=1 \
+  && ./configure --prefix=/usr --with-shared --without-debug \
+    --without-ada --enable-widec --without-cxx \
+  && make -s -j$(nproc) \
+  && make install DESTDIR=/base
+
+WORKDIR /build/readline
+RUN curl --silent --show-error --location --output readline.tar.gz \
+  ${READLINE_SOURCE} \
+  && tar xf readline.tar.gz --strip-components=1 \
+  && CPPFLAGS="-I/base/usr/include" LDFLAGS="-L/base/usr/lib" \
+    ./configure --prefix=/usr --with-curses --enable-multibyte \
+  && make -s -j$(nproc) \
+  && make install DESTDIR=/base
+
+WORKDIR /build/libffi
+RUN curl --silent --show-error --location --output libffi.tar.gz \
+  ${LIBFFI_SOURCE} \
+  && tar xf libffi.tar.gz --strip-components=1 \
+  && ./configure --prefix=/usr --disable-static \
+  && make -s -j$(nproc) \
+  && make install DESTDIR=/base
+
+WORKDIR /build/bzip2
+RUN curl --silent --show-error --location --output bzip2.tar.gz \
+  ${BZIP2_SOURCE} \
+  && tar xf bzip2.tar.gz --strip-components=1 \
+  && make -s -j$(nproc) CFLAGS="-fPIC -O2" \
+  && make install PREFIX=/usr DESTDIR=/base
+
+WORKDIR /build/xz
+RUN curl --silent --show-error --location --output xz.tar.gz \
+  ${XZ_SOURCE} \
+  && tar xf xz.tar.gz --strip-components=1 \
+  && ./configure --prefix=/usr --disable-static \
+  && make -s -j$(nproc) \
+  && make install DESTDIR=/base
+
+WORKDIR /build/python
+RUN curl --silent --show-error --location --output python.tar.gz \
+  ${PYTHON_SOURCES}/${PYTHON_TARBALL} \
+  && tar xf python.tar.gz --strip-components=1 \
+  && CPPFLAGS="-I/base/usr/include" LDFLAGS="-L/base/usr/lib" \
+    ./configure \
+      --prefix=/usr \
+      --enable-optimizations \
+      --with-lto \
+      --with-openssl=/base/usr \
+      --enable-shared \
+      --with-ensurepip=install \
+  && make -s -j$(nproc) \
+  && make install DESTDIR=/base \
+  && ln -s python3 /base/usr/bin/python
+
+RUN rm -fr /base/usr/lib/{pkgconfig,cmake} /base/usr/share/{man,info,doc}
+
+FROM ghcr.io/simons-public/distroless/base
+ARG PYTHON_VERSION=3.14.0
+
+COPY --from=builder /base/usr/lib/ /usr/lib/
+COPY --from=builder /base/usr/share/ /usr/share/
+COPY --from=builder /base/usr/bin/ /usr/bin/
+COPY ./pip /usr/bin/pip
+
+LABEL org.opencontainers.image.title="distroless python"
+LABEL org.opencontainers.image.description="distroless python"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL build.python.version="${PYTHON_VERSION}"
