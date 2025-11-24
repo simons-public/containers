@@ -4,6 +4,9 @@ ARG PYTHON_VERSION=3.14.0
 ARG PYTHON_TARBALL=Python-${PYTHON_VERSION}.tgz
 ARG PYTHON_SOURCES=https://www.python.org/ftp/python/${PYTHON_VERSION}
 
+ARG GCC_VERSION=15.2.0
+ARG GCC_SOURCE=https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz
+
 ARG ZLIB_VERSION=1.3.1
 ARG ZLIB_SOURCE=https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
 
@@ -26,6 +29,18 @@ ARG XZ_VERSION=5.4.6
 ARG XZ_SOURCE=https://tukaani.org/xz/xz-${XZ_VERSION}.tar.gz
 
 RUN pacman -Sy --noconfirm base-devel perl python curl >/dev/null
+
+WORKDIR /build/gcc
+RUN curl --silent --show-error --location --output gcc.tar.xz \
+  ${GCC_SOURCE} \
+  && tar xf gcc.tar.xz --strip-components=1 \
+  && ./contrib/download_prerequisites \
+  && mkdir build && cd build \
+  && ../configure --disable-bootstrap --disable-multilib \
+       --enable-languages=c \
+       --prefix=/usr \
+  && make -s -j$(nproc) all-target-libgcc \
+  && make -s install-target-libgcc DESTDIR=/base
 
 WORKDIR /build/zlib
 RUN curl --silent --show-error --location --output zlib.tar.gz \
@@ -99,7 +114,8 @@ RUN curl --silent --show-error --location --output python.tar.gz \
       --with-ensurepip=install \
   && make -s -j$(nproc) \
   && make install DESTDIR=/base \
-  && ln -s python3 /base/usr/bin/python
+  && ln -s python3 /base/usr/bin/python \
+  && ln -s pip3 /base/usr/bin/pip
 
 RUN rm -fr /base/usr/lib/{pkgconfig,cmake} /base/usr/share/{man,info,doc}
 
@@ -109,7 +125,6 @@ ARG PYTHON_VERSION=3.14.0
 COPY --from=builder /base/usr/lib/ /usr/lib/
 COPY --from=builder /base/usr/share/ /usr/share/
 COPY --from=builder /base/usr/bin/ /usr/bin/
-COPY ./pip /usr/bin/pip
 
 LABEL org.opencontainers.image.title="distroless python"
 LABEL org.opencontainers.image.description="distroless python"
