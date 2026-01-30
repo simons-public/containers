@@ -1,0 +1,25 @@
+FROM archlinux AS builder
+
+ARG PGWEB_VERSION=0.17.0
+ARG PGWEB_ZIPFILE=pgweb_linux_amd64.zip
+ARG GITHUB_URL=https://github.com/sosedoff/pgweb/releases/download
+
+RUN pacman -Syu --noconfirm unzip
+
+WORKDIR /extract/pgweb
+RUN curl --silent --show-error --location --output pgweb.zip \
+  "${GITHUB_URL}/v${PGWEB_VERSION}/${PGWEB_ZIPFILE}" \
+  && unzip pgweb.zip
+
+FROM ghcr.io/simons-public/distroless/base
+ARG PGWEB_VERSION=0.17.0
+
+COPY --from=builder /extract/pgweb/pgweb_linux_amd64 /usr/bin/pgweb
+
+ENTRYPOINT ["/usr/bin/pgweb", "--bind=0.0.0.0"]
+
+LABEL org.opencontainers.image.title="distroless pgweb"
+LABEL org.opencontainers.image.description="distroless pgweb"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.volumes.config="/etc/pgweb"
+LABEL build.pgweb.version="${PGWEB_VERSION}"
