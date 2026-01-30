@@ -1,7 +1,7 @@
 FROM archlinux AS builder
 
 ARG ARCH=amd64
-ARG AUTHELIA_VERSION=4.39.14
+ARG AUTHELIA_VERSION=4.39.15
 ARG AUTHELIA_TARBALL=authelia-v${AUTHELIA_VERSION}-linux-${ARCH}.tar.gz
 ARG GITHUB_URL=https://github.com/authelia/authelia/releases/download
 
@@ -11,7 +11,7 @@ RUN curl --silent --show-error --location --output authelia.tar.gz \
   && tar xzf authelia.tar.gz
 
 FROM ghcr.io/simons-public/distroless/base
-ARG AUTHELIA_VERSION=4.39.14
+ARG AUTHELIA_VERSION=4.39.15
 COPY --from=builder /tmp/authelia /usr/bin/authelia
 
 ENTRYPOINT ["/usr/bin/authelia", "--config", "/etc/authelia.d"]
