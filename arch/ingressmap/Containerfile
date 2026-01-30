@@ -1,0 +1,21 @@
+FROM archlinux:base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN pacman -Sy --noconfirm \
+        python \
+        python-pip \
+        ca-certificates \
+    && pacman -Scc --noconfirm
+
+WORKDIR /app
+RUN pip install --no-cache-dir --break-system-packages \
+        nicegui \
+        kubernetes
+
+EXPOSE 8080
+
+COPY app.py /app/app.py
+
+CMD ["python", "/app/app.py"]
