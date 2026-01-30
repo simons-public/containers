@@ -1,0 +1,22 @@
+FROM archlinux:latest
+
+# Set environment to non-interactive
+ENV TERM xterm
+ENV LANG en_US.UTF-8
+
+# Install required packages
+RUN pacman -Syu --noconfirm \
+    emby-server mediainfo mkvtoolnix-cli \
+    libdvdcss python sqlite\
+    poppler-glib openslide imagemagick \
+    && pacman -Scc --noconfirm
+
+RUN groupadd -g 5000 media
+RUN useradd -m -d /var/lib/emby -G video,render,media emby
+
+COPY ./entrypoint.py /usr/local/bin/entrypoint.py
+
+USER emby
+EXPOSE 8096
+
+CMD ["python", "/usr/local/bin/entrypoint.py"]
