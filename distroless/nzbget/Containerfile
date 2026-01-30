@@ -9,15 +9,21 @@ ARG ZLIB_SOURCE=https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
 ARG OPENSSL_VERSION=3.3.1
 ARG OPENSSL_SOURCE=https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
 
+ARG LIBXML2_VERSION=2.12.7
+ARG LIBXML2_SOURCE=https://download.gnome.org/sources/libxml2/2.12/libxml2-${LIBXML2_VERSION}.tar.xz
+
+ARG BOOST_VERSION=1.90.0
+ARG BOOST_SOURCE=https://github.com/boostorg/boost/archive/refs/tags/boost-${BOOST_VERSION}.tar.gz
+
 RUN pacman -Sy --noconfirm \
       base-devel \
       curl \
       perl \
       python \
-      libxml2 \
       unzip \
       cmake \
-      git
+      git \
+      xz
 
 WORKDIR /build/zlib
 RUN curl --silent --show-error --location --output zlib.tar.gz \
@@ -34,11 +40,46 @@ RUN curl --silent --show-error --location --output openssl.tar.gz \
     && ./Configure linux-x86_64 \
          --prefix=/usr \
          --libdir=/usr/lib \
-         no-tests no-docs \
          --with-zlib-include=/base/usr/include \
          --with-zlib-lib=/base/usr/lib \
     && make -s -j$(nproc) \
-    && make install DESTDIR=/base
+    && make install_sw DESTDIR=/base
+
+WORKDIR /build/libxml2
+RUN curl --silent --show-error --location --output libxml2.tar.xz \
+      ${LIBXML2_SOURCE} \
+    && tar xf libxml2.tar.xz --strip-components=1 \
+    && cmake -S . -B build \
+         -DCMAKE_BUILD_TYPE=Release \
+         -DCMAKE_INSTALL_PREFIX=/usr \
+         -DLIBXML2_WITH_PYTHON=OFF \
+         -DLIBXML2_WITH_LZMA=OFF \
+         -DLIBXML2_WITH_ICONV=OFF \
+         -DLIBXML2_WITH_ZLIB=ON \
+         -DZLIB_ROOT=/base/usr \
+    && cmake --build build -j$(nproc) \
+    && DESTDIR=/base cmake --install build
+
+#WORKDIR /build/boost
+#RUN curl --silent --show-error --location --output boost.tar.gz \
+#      ${BOOST_SOURCE} \
+#    && tar xf boost.tar.gz --strip-components=1 \
+#    && ./bootstrap.sh \
+#         --prefix=/usr \
+#         --with-libraries=filesystem,system,asio,json \
+#    && ./b2 \
+#         -j$(nproc) \
+#         link=shared \
+#         runtime-link=shared \
+#         threading=multi \
+#         variant=release \
+#         install \
+#         --prefix=/usr \
+#         --libdir=/usr/lib \
+#         --includedir=/usr/include \
+#         --layout=system \
+#         --stagedir=/base \
+#         install
 
 WORKDIR /build/nzbget
 RUN curl --silent --show-error --location --output nzbget.tar.gz \
@@ -48,13 +89,12 @@ RUN curl --silent --show-error --location --output nzbget.tar.gz \
          -DCMAKE_BUILD_TYPE=Release \
          -DCMAKE_INSTALL_PREFIX=/usr \
          -DENABLE_PYTHON=ON \
-         -DUSE_SYSTEM_LIBS=ON \
+         -DDISABLE_CURSES=ON \
          -DZLIB_ROOT=/base/usr \
          -DOPENSSL_ROOT_DIR=/base/usr \
-         -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++" \
     && cmake --build build -j$(nproc) \
     && DESTDIR=/base cmake --install build
-    
+
 RUN rm -fr \
       /base/usr/share/{doc,info,man} \
       /base/usr/lib/pkgconfig \
@@ -62,7 +102,7 @@ RUN rm -fr \
 
 FROM ghcr.io/simons-public/distroless/python
 
-ARG NZBGET_VERSION=21.1
+ARG NZBGET_VERSION=25.4
 
 COPY --from=builder /base/usr/lib/ /usr/lib/
 COPY --from=builder /base/usr/share/ /usr/share/
